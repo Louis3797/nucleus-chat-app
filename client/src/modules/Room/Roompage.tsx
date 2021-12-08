@@ -1,6 +1,6 @@
 import { DefaultEventsMap } from "@socket.io/component-emitter";
-import { useRouter } from "next/dist/client/router";
-import React, { useEffect, useRef, useState } from "react";
+import { NextRouter, useRouter } from "next/dist/client/router";
+import React, { useCallback, useContext, useEffect, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import ChatBox from "../../ui/chat/ChatBox";
 import ChatInput from "../../ui/chat/ChatInput";
@@ -12,42 +12,35 @@ import {
 
 import { v4 as uuidv4 } from "uuid";
 import Message from "../../types/Message";
-import { useSocket } from "../../hooks/useSocket";
+
+import { SocketContext } from "../../context/socket";
 
 // { userId: 4, user: "Fabienne", message: "Hi" },
 
-const Roompage = () => {
-  const router = useRouter();
+const Roompage: React.FC = () => {
+  // get global socket object from SocketContext
+  const socket = useContext(SocketContext);
+
+  const router: NextRouter = useRouter();
   const [msg, setMsg] = useState<Message[]>([]);
   const [text, setText] = useState<string>("");
 
-  const [
-    socket,
-    setSocket,
-    connect,
-    disconnect,
-    joinRoom,
-    getMessage,
-    sendMessage,
-  ] = useSocket("http://localhost:4000");
-
+  // get roomid form query
   const { roomid } = router.query;
 
-  console.log(roomid);
-
+  // join the Room
   useEffect(() => {
-    if (roomid !== "undefined") joinRoom("" + roomid);
-    return () => {
-      roomid;
-    };
-  }, [joinRoom, roomid]);
+    if (roomid !== "undefined") socket.emit("joinRoom", "" + roomid);
+  }, [roomid, socket]);
 
+  // get message everytime the Component renders new
   useEffect(() => {
     socket.on("msgToClient", (message: Message): void => {
       setMsg([...msg, message]);
     });
   }, [msg]);
 
+  // validate user credentials and text length
   const validate = (): boolean => {
     return (
       text.length > 0 &&
@@ -58,6 +51,7 @@ const Roompage = () => {
 
   const sendChatMessage = () => {
     if (validate()) {
+      // construct message object
       const message: Message = {
         id: uuidv4(),
         userid: window.sessionStorage.getItem("UserId") ?? "",
@@ -66,11 +60,14 @@ const Roompage = () => {
         message: text,
       };
 
-      sendMessage(message);
+      // send message to server
+      socket.emit("msgToServer", message);
+
       setText("");
     }
   };
 
+  // map messages from msg state
   const chatMessages = msg.map((m: Message) => {
     if (window.sessionStorage.getItem("UserId") === m.userid) {
       return (
