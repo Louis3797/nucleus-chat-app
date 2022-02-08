@@ -50,7 +50,7 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-[![homescreen][product-screenshot]]
+![homescreen][product-screenshot]
 
 Nucleus is a little chat app i build. You can join and create rooms to chat with other people or friends.
 
